@@ -1,138 +1,8 @@
-import random, sys
+import random
 
-class Card():
-    SUITS_HUMAN = [u"\u2660", u"\u2665", u"\u2666", u"\u2663"]
-    FACES_HUMAN = ['A'] + range(2, 11) + ['J', 'Q', 'K']
-
-    SUITS = range(0, 4)
-    FACES = range(0, 13)
-
-    def __init__(self, suit, face):
-        self.suit = suit
-        self.face = face
-
-    def is_ace(self):
-        return self.face == 0
-
-    def value(self):
-        # faces are 0 indexed
-        return min(self.face, 9) + 1
-
-    def __unicode__(self):
-        return u"%s%s" % (self.FACES_HUMAN[self.face], self.SUITS_HUMAN[self.suit])
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-class Deck():
-    def __init__(self):
-        self.cards = []
-
-        for suit in Card.SUITS:
-            for face in Card.FACES:
-                self.cards.append(Card(suit, face))
-
-        random.shuffle(self.cards)
-
-    def draw(self):
-        if self.cards:
-            return self.cards.pop()
-        newdeck = Deck()
-
-        self.cards = newdeck.cards
-        return self.draw()
-
-
-class Hand():
-    def __init__(self):
-        self.cards = []
-
-    def is_soft(self):
-        value = 0
-        has_ace = False
-
-        for card in self.cards:
-            if card.is_ace():
-                has_ace = True
-
-            value += card.value()
-
-        return has_ace and value <= 11
-
-    def value(self):
-        value = 0
-        has_ace = False
-
-        for card in self.cards:
-            value += card.value()
-
-            if card.is_ace():
-                has_ace = True
-
-        if has_ace and value <= 11:
-            value += 10
-
-        return value
-
-    def __unicode__(self):
-        soft = ' soft ' if self.is_soft() else ' '
-
-        return u"[%s] (value:%s%s)" % (', '.join(map(unicode, self.cards)), soft, self.value())
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-class Player():
-    def __init__(self, name, bankroll):
-        self.hand = Hand()
-        self.bankroll = bankroll
-        self.name = name
-        self.bet = 0
-
-    def play_hand(self, dealer_card):
-        while True:
-            recommend = basic_strategy(self.hand.value(), dealer_card.value(), self.hand.is_soft())
-
-            if len(self.hand.cards) == 2:
-                move = raw_input("%s: %s - hit/stand/double? (we recommend %s) " % (self.name, self.hand, recommend))
-            else:
-                # for simplicity. This is not true for soft 18.
-                if recommend == 'double':
-                    recommend = 'hit'
-
-                move = raw_input("%s: %s - hit/stand? (we recommend %s) " % (self.name, self.hand, recommend))
-
-            if move.startswith('h'):
-                return 'hit'
-            elif move.startswith('s'):
-                return 'stand'
-            elif move.startswith('d'):
-                return 'double'
-
-            print "Invalid move"
-
-    def __str__(self):
-        return '(%s, $%s)' % (self.name, self.bankroll)
-
-    def is_bust(self):
-        return self.hand.value() > 21
-
-
-
-class Dealer(Player):
-    def __init__(self):
-        self.hand = Hand()
-        self.name = "Dealer"
-        self.bet = 0
-        self.bankroll = 1e7
-
-    def play_hand(self):
-        if self.hand.value() < 17:
-            return 'hit'
-        return 'stand'
-
-    def __str__(self):
-        return "Dealer"
+from dealer import Dealer
+from deck import Deck
+from player import Player
 
 class Game():
     def __init__(self):
@@ -304,62 +174,6 @@ class Game():
             elif move.startswith('n'):
                 return False
 
-def basic_strategy(player_total, dealer_value, soft):
-    """ This is a simple implementation of Blackjack's
-        basic strategy. It is used to recommend actions
-        for the player. """
-
-    if 4 <= player_total <= 8:
-        return 'hit'
-    if player_total == 9:
-        if dealer_value in [1,2,7,8,9,10]:
-            return 'hit'
-        return 'double'
-    if player_total == 10:
-        if dealer_value in [1, 10]:
-            return 'hit'
-        return 'double'
-    if player_total == 11:
-        if dealer_value == 1:
-            return 'hit'
-        return 'double'
-    if soft:
-        #we only double soft 12 because there's no splitting
-        if player_total in [12, 13, 14]:
-            if dealer_value in [5, 6]:
-                return 'double'
-            return 'hit'
-        if player_total in [15, 16]:
-            if dealer_value in [4, 5, 6]:
-                return 'double'
-            return 'hit'
-        if player_total == 17:
-            if dealer_value in [3, 4, 5, 6]:
-                return 'double'
-            return 'hit'
-        if player_total == 18:
-            if dealer_value in [3, 4, 5, 6]:
-                return 'double'
-            if dealer_value in [2, 7, 8]:
-                return 'stand'
-            return 'hit'
-        if player_total >= 19:
-            return 'stand'
-
-    else:
-        if player_total == 12:
-            if dealer_value in [1, 2, 3, 7, 8, 9, 10]:
-                return 'hit'
-            return 'stand'
-        if player_total in [13, 14, 15, 16]:
-            if dealer_value in [2, 3, 4, 5, 6]:
-                return 'stand'
-            return 'hit'
-
-        if player_total >= 17:
-            return 'stand'
-
-
 
 def main():
     print ">>> Welcome to V's Blackjack Table. Advice is given out for free <<< \n"
@@ -374,8 +188,6 @@ def main():
         if not keep_going:
             break
     print "\n>>> Thanks for playing at V\'s Casino! <<<"
-
-
 
 
 if __name__ == '__main__':
